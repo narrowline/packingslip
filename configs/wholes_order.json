@@ -1,0 +1,214 @@
+{
+  "form_info": {
+    "form_id": "241260797181863",
+    "form_name": "Wholesale Order",
+    "description": "Whole customer orders"
+  },
+
+  "email": {
+    "enabled": true,
+    "recipients": [
+      "r11938616@gmail.com",
+      "marketing.tommysugo@gmail.com"
+    ],
+    "factory_email": "orders.vesuvio1@bigpond.com",
+    "sender": "placeholder@gmail.com",
+    "password": "placeholder_password",
+    "subject": "New Wholesale Order",
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "email_body": "As usual please use Tommy Sugo paperwork and packing slip ONLY as attached.",
+    "signature": "Thanks & Regards\n\nArslan Munawar\nTommy Sugo\n+61861860077\nLive Chat [Click Here] (https://tawk.to/chat/640814ab4247f20fefe49d78/1gqvp1fuf)",
+    "signature_html": "<p><strong>Thanks &amp; Regards</strong></p><p>Arslan Munawar<br>Tommy Sugo<br>+61861860077<br>Live Chat <a href='https://tawk.to/chat/640814ab4247f20fefe49d78/1gqvp1fuf' style='color: #007bff; text-decoration: none;'>Click Here</a></p>"
+  },
+  
+  "pdf": {
+    "folder": "packing_slips",
+    "title": "Wholesale Order",
+    "logo_path": "Picture1.png",
+    "fonts": {
+      "paths": [
+        ["D:\\packingslip\\DejaVuSans.ttf", "D:\\packingslip\\DejaVuSans-Bold.ttf"],
+        ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf"],
+        ["dejavu-sans\\DejaVuSans.ttf", "dejavu-sans\\DejaVuSans-Bold.ttf"]
+      ]
+    },
+    "style": {
+      "title_font_size": 16,
+      "header_font_size": 11,
+      "table_font_size": 10,
+      "line_height": 6,
+      "label_width": 50,
+      "spacing_after_title": 8,
+      "spacing_before_table": 5,
+      "table_header_color": [255, 250, 240],
+      "table_border_color": [218, 165, 32],
+      "alternate_row_colors": [
+        [255, 255, 255],
+        [252, 248, 240]
+      ]
+    },
+    "footer_text": "Thank you for your business!"
+  },
+  
+  "fields": {
+    "pickup_info": {
+      "jotform_field": null,
+      "label": "Pickup",
+      "static_value": "Jan Couriers",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 1
+    },
+    "invoice_display": {
+      "jotform_field": "q42_invoiceId",
+      "label": "Invoice",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 2
+    },
+    "business_name": {
+      "jotform_field": "q38_businessName38",
+      "label": "Customer Name",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 3
+    },
+    "contact_person": {
+      "jotform_field": "q39_nameOf39",
+      "label": "Order placed by",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 4
+    },
+    "delivery_date": {
+      "jotform_field": "q6_desiredDelivery",
+      "label": "Delivery/Pickup Date",
+      "field_type": "date_object",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 5
+    },
+    "order_date": {
+      "jotform_field": "q6_desiredDelivery",
+      "label": "Order Date",
+      "field_type": "date_object",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 5
+    },
+    "phone": {
+      "jotform_field": "q19_yourPhone",
+      "label": "Phone Number",
+      "field_type": "phone_simple",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 6
+    },
+    "delivery_mode": {
+      "jotform_field": "q56_modeOf",
+      "label": "Delivery/Pickup",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 7
+    },
+    "delivery_method": {
+      "jotform_field": "q56_modeOf",
+      "label": "Delivery/Pickup",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 7
+    },
+    "pickup_person": {
+      "jotform_field": "q57_pickUp",
+      "label": "Pickup By",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 8,
+      "conditional": {
+        "depends_on": "delivery_mode",
+        "show_when": ["Self Pick-up", "Self Pickup", "Pickup", "self pick-up"]
+      }
+    },
+    "address": {
+      "jotform_field": "q3_deliveryAddress3",
+      "label": "Delivery Address",
+      "field_type": "address_object",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 9,
+      "conditional": {
+        "depends_on": "delivery_mode",
+        "show_when": ["Delivery", "Home Delivery", "delivery"]
+      }
+    },
+    "note": {
+      "jotform_field": ["q22_anyNotes"],
+      "label": "Notes",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 10,
+      "multiline": true
+    },
+    "customer_note": {
+      "jotform_field": ["q22_anyNotes"],
+      "label": "Customer Note",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 10,
+      "multiline": true
+    },
+    "email": {
+      "jotform_field": "q2_emailAddress",
+      "label": "Email",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 11
+    },
+    "send_to_factory": {
+      "jotform_field": "q55_sendTo",
+      "label": "Send to Factory",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 12
+    }
+  },
+  
+  "products": {
+    "jotform_field": "q53_ourYummy",
+    "products_key": "products",
+    "columns": [
+      {
+        "name": "qty",
+        "label": "Qty",
+        "jotform_key": "quantity",
+        "width": 15,
+        "align": "C"
+      },
+      {
+        "name": "product_name",
+        "label": "Product Name",
+        "jotform_key": "productName",
+        "width": 100,
+        "align": "L",
+        "process_function": "clean_product_name"
+      },
+      {
+        "name": "product_code",
+        "label": "Product Code",
+        "jotform_key": "productName",
+        "width": 30,
+        "align": "C",
+        "process_function": "extract_product_code"
+      },
+      {
+        "name": "batch_code",
+        "label": "Batch Code",
+        "jotform_key": "batchCode",
+        "width": 45,
+        "align": "C",
+        "fallback_keys": ["batch_code", "productOptions", "batchNumber"]
+      }
+    ]
+  }
+}

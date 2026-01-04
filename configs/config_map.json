@@ -1,0 +1,15 @@
+{
+  "forms": {
+    "253584942392063": {
+      "name": "Fake Wholesale Order Form",
+      "config_file": "wholesale_order.json",
+      "description": "Fake wholesale order form"
+    },
+    "241260797181863": {
+      "name": "Wholesale Order Form", 
+      "config_file": "wholes_order.json",
+      "description": "Main Whole Sale customer order form"
+    }
+  },
+  "default_config": "wholes_order.json"
+}

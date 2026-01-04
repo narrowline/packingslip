@@ -1,0 +1,161 @@
+{
+  "form_info": {
+    "form_id": "253584942392063",
+    "form_name": "Fake Wholesale Order",
+    "description": "Fake Wholesale customer orders"
+  },
+
+  "email": {
+    "enabled": true,
+    "recipients": [
+      "r11938616@gmail.com",
+      "wholesale@example.com"
+    ],
+    "sender": "asorders.takeaway@gmail.com",
+    "password": "tbtw akio bzsg ymvu",
+    "subject": "New Wholesale Order Received - Invoice #{invoice_no}",
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "email_body": "Please find attached packing slip for the new wholesale order.\n\nThank you!",
+    "signature": "\n\nBest Regards,\nAS Orders Team\nwww.asorders.com"
+  },
+  
+  "pdf": {
+    "folder": "packing_slips/wholesale",
+    "title": "WHOLESALE ORDER",
+    "logo_path": "Picture1.png",
+    "fonts": {
+      "paths": [
+        ["D:\\packingslip\\DejaVuSans.ttf", "D:\\packingslip\\DejaVuSans-Bold.ttf"],
+        ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf"],
+        ["dejavu-sans\\DejaVuSans.ttf", "dejavu-sans\\DejaVuSans-Bold.ttf"]
+      ]
+    },
+    "style": {
+      "title_font_size": 16,
+      "header_font_size": 11,
+      "table_font_size": 10,
+      "line_height": 6,
+      "label_width": 42,
+      "spacing_after_title": 8,
+      "spacing_before_table": 5,
+      "table_header_color": [255, 250, 240],
+      "table_border_color": [218, 165, 32],
+      "alternate_row_colors": [
+        [255, 255, 255],
+        [252, 248, 240]
+      ]
+    },
+    "footer_text": "Thank you for your business!"
+  },
+  
+  "fields": {
+    "pickup_info": {
+      "jotform_field": null,
+      "label": "Pickup",
+      "static_value": "Jan Couriers",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 1
+    },
+    "invoice_display": {
+      "jotform_field": null,
+      "label": "Invoice #",
+      "static_value": "{invoice_no}",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 2
+    },
+    "business_name": {
+      "jotform_field": "q14_businessName",
+      "label": "Deliver To",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 3
+    },
+    "delivery_date": {
+      "jotform_field": "q10_desiredDelivery",
+      "label": "Delivery Date",
+      "field_type": "date_object",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 4
+    },
+    "phone": {
+      "jotform_field": "q23_yourPhone",
+      "label": "Phone Number",
+      "field_type": "phone_object",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 5
+    },
+    "address": {
+      "jotform_field": "q21_address",
+      "label": "Address",
+      "field_type": "address_object",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 6
+    },
+    "note": {
+      "jotform_field": ["q27_anyNote", "q31_remarksAbout"],
+      "label": "Note",
+      "show_in_pdf": true,
+      "pdf_section": "header",
+      "order": 7,
+      "multiline": true
+    },
+    "email": {
+      "jotform_field": "q22_emailAddress",
+      "label": "Email Address",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 8
+    },
+    "contact_person": {
+      "jotform_field": "q15_businessName15",
+      "label": "Contact Person",
+      "show_in_pdf": false,
+      "pdf_section": "header",
+      "order": 9
+    }
+  },
+  
+  "products": {
+    "jotform_field": "q4_retails",
+    "products_key": "products",
+    "columns": [
+      {
+        "name": "qty",
+        "label": "Qty",
+        "jotform_key": "quantity",
+        "width": 15,
+        "align": "C"
+      },
+      {
+        "name": "product_name",
+        "label": "Product Name",
+        "jotform_key": "productName",
+        "width": 100,
+        "align": "L",
+        "process_function": "clean_product_name"
+      },
+      {
+        "name": "product_code",
+        "label": "Product Code",
+        "jotform_key": "productName",
+        "width": 30,
+        "align": "C",
+        "process_function": "extract_product_code"
+      },
+      {
+        "name": "batch_code",
+        "label": "Batch Code",
+        "jotform_key": "batchCode",
+        "width": 45,
+        "align": "C",
+        "fallback_keys": ["batch_code", "productOptions", "batchNumber"]
+      }
+    ]
+  }
+}
