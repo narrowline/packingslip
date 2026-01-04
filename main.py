@@ -617,7 +617,7 @@ def send_email_with_pdf(pdf_path: str, config: Dict, invoice_no: str, order_data
 # =========================================
 
 
-# ============= PDF GENERATOR (FIXED FONT LOADING) =============
+# ============= PDF GENERATOR (FIXED - NO CUSTOM FONTS) =============
 def create_packing_slip(order_data: Dict, config: Dict) -> str:
     """Generate PDF packing slip in single packing_slips folder"""
     pdf = FPDF('P', 'mm', 'A4')
@@ -626,64 +626,48 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
     pdf_config = config['pdf']
     style = pdf_config['style']
     
-    # FIXED: Dynamic font loading with proper path resolution
-    regular_font = bold_font = "Arial"
-    base_path = Path(__file__).parent
+    # FIXED: Use built-in Arial font only (no custom font loading)
+    # This avoids the cached path issue with fpdf library
+    regular_font = "Arial"
+    bold_font = "Arial"
     
-    # Try multiple font locations
-    font_search_paths = [
-        # Direct paths from config
-        pdf_config['fonts']['paths'],
-        # Common font locations
-        [
-            [base_path / "DejaVuSans.ttf", base_path / "DejaVuSans-Bold.ttf"],
-            [base_path / "dejavu-sans" / "DejaVuSans.ttf", base_path / "dejavu-sans" / "DejaVuSans-Bold.ttf"],
-            ["fonts/DejaVuSans.ttf", "fonts/DejaVuSans-Bold.ttf"]
-        ]
+    # Optional: Try to load DejaVu fonts if they exist, but don't fail if they don't
+    base_path = Path(__file__).parent
+    font_loaded = False
+    
+    # Only try if fonts actually exist in the deployment
+    possible_font_locations = [
+        (base_path / "DejaVuSans.ttf", base_path / "DejaVuSans-Bold.ttf"),
+        (base_path / "dejavu-sans" / "DejaVuSans.ttf", base_path / "dejavu-sans" / "DejaVuSans-Bold.ttf"),
     ]
     
-    # Flatten and try each font pair
-    for font_paths in font_search_paths:
-        if isinstance(font_paths, list):
-            for font_regular, font_bold in font_paths:
-                # Convert to Path objects if strings
-                regular_path = Path(font_regular) if not isinstance(font_regular, Path) else font_regular
-                bold_path = Path(font_bold) if not isinstance(font_bold, Path) else font_bold
+    for regular_path, bold_path in possible_font_locations:
+        if regular_path.exists() and bold_path.exists():
+            try:
+                # Check if font files are readable
+                with open(regular_path, 'rb') as f:
+                    f.read(10)  # Test read
+                with open(bold_path, 'rb') as f:
+                    f.read(10)  # Test read
                 
-                # Make absolute if relative
-                if not regular_path.is_absolute():
-                    regular_path = base_path / regular_path
-                if not bold_path.is_absolute():
-                    bold_path = base_path / bold_path
+                # Now try to add fonts
+                pdf.add_font('DejaVu', '', str(regular_path.resolve()), uni=True)
+                pdf.add_font('DejaVu', 'B', str(bold_path.resolve()), uni=True)
                 
-                # Check if fonts exist
-                if regular_path.exists():
-                    try:
-                        pdf.add_font('DejaVu', '', str(regular_path), uni=True)
-                        regular_font = "DejaVu"
-                        logger.info(f"Loaded regular font: {regular_path}")
-                        
-                        if bold_path.exists():
-                            pdf.add_font('DejaVu', 'B', str(bold_path), uni=True)
-                            bold_font = "DejaVu"
-                            logger.info(f"Loaded bold font: {bold_path}")
-                        
-                        break  # Successfully loaded fonts
-                    except Exception as e:
-                        logger.warning(f"Failed to load fonts from {regular_path}: {e}")
-                        continue
-        
-        # If fonts loaded successfully, break outer loop
-        if regular_font == "DejaVu":
-            break
+                regular_font = "DejaVu"
+                bold_font = "DejaVu"
+                font_loaded = True
+                logger.info(f"Successfully loaded fonts from: {regular_path}")
+                break
+            except Exception as e:
+                logger.warning(f"Failed to load fonts from {regular_path}: {e}")
+                continue
     
-    # Fallback to Arial if DejaVu not found
-    if regular_font != "DejaVu":
-        logger.warning("DejaVu fonts not found, using Arial fallback")
+    if not font_loaded:
+        logger.info("Using built-in Arial fonts (Unicode fonts not available)")
     
     # Logo
     logo_paths = [
-        pdf_config['logo_path'],
         base_path / pdf_config['logo_path'],
         base_path / "logos" / Path(pdf_config['logo_path']).name,
         base_path / Path(pdf_config['logo_path']).name
@@ -691,7 +675,6 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
     
     logo_height = 0
     for logo_path in logo_paths:
-        logo_path = Path(logo_path)
         if logo_path.exists():
             try:
                 pdf.image(str(logo_path), x=10, y=5, w=190)
@@ -705,7 +688,7 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
         pdf.ln(logo_height + 2)
     
     # Title
-    pdf.set_font(bold_font, 'B' if bold_font == "DejaVu" else '', style['title_font_size'])
+    pdf.set_font(bold_font, 'B', style['title_font_size'])
     pdf.cell(0, 8, pdf_config['title'], ln=True, align="C")
     
     # Title ke baad spacing (configurable)
@@ -741,13 +724,13 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
             )
             
             if not should_show:
-                logger.debug(f"Skipping {field_key} due to conditional logic (depends_on={depends_on_field}, value={depends_on_value})")
+                logger.debug(f"Skipping {field_key} due to conditional logic")
                 continue
         
         # Label width from config (default 40)
         label_width = style.get('label_width', 40)
         
-        pdf.set_font(bold_font, 'B' if bold_font == "DejaVu" else '', style['header_font_size'])
+        pdf.set_font(bold_font, 'B', style['header_font_size'])
         pdf.cell(label_width, style['line_height'], f"{label}:", border=0)
         
         pdf.set_font(regular_font, '', style['header_font_size'])
@@ -763,7 +746,7 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
     
     # Products table
     product_config = config['products']
-    pdf.set_font(bold_font, 'B' if bold_font == "DejaVu" else '', style['header_font_size'])
+    pdf.set_font(bold_font, 'B', style['header_font_size'])
     pdf.set_draw_color(*style['table_border_color'])
     pdf.set_line_width(0.8)
     pdf.set_fill_color(*style['table_header_color'])
@@ -824,7 +807,7 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
     # Total
     pdf.ln(3)
     pdf.set_draw_color(0, 0, 0)
-    pdf.set_font(bold_font, 'B' if bold_font == "DejaVu" else '', 12)
+    pdf.set_font(bold_font, 'B', 12)
     
     total_qty = sum(int(item.get('qty', 0)) for item in order_data['items'])
     
@@ -847,7 +830,7 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
     
     logger.info(f"PDF created: {pdf_file}")
     return str(pdf_file)
-# =========================================
+
 # =========================================
 
 
