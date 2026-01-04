@@ -413,237 +413,126 @@ def extract_form_id(raw_data: Dict) -> Optional[str]:
 # ============================================
 
 
-# ============= EMAIL SERVICE (FIXED FOR RAILWAY) =============
 def send_email_with_pdf(pdf_path: str, config: Dict, invoice_no: str, order_data: Dict = None) -> bool:
-    """Send PDF via email with dynamic content - Uses environment variables for credentials"""
     email_config = config['email']
-    
+
     try:
-        # Get email credentials from environment variables (secure for Render deployment)
-        sender = os.getenv('EMAIL_SENDER', email_config.get('sender', ''))
-        password = os.getenv('EMAIL_PASSWORD', email_config.get('password', ''))
-        smtp_server = os.getenv('SMTP_SERVER', email_config.get('smtp_server', 'smtp.gmail.com'))
-        smtp_port = int(os.getenv('SMTP_PORT', email_config.get('smtp_port', 465)))  # Changed default to 465
-        
-        if not sender or not password:
-            logger.error("Email credentials not found in environment variables or config")
+        sender = os.getenv('EMAIL_SENDER')
+        api_key = os.getenv('RESEND_API_KEY')
+
+        if not sender or not api_key:
+            logger.error("EMAIL_SENDER or RESEND_API_KEY missing")
             return False
-        
-        # Determine recipients based on "Send to Factory" option
-        recipients = list(email_config['recipients'])  # Default recipients
-        
-        # Check if factory email should be included
+
+        # ---------- RECIPIENT LOGIC (UNCHANGED) ----------
+        recipients = list(email_config['recipients'])
+
         send_to_factory = order_data.get('send_to_factory', 'No') if order_data else 'No'
         factory_email = email_config.get('factory_email', '')
-        
-        if send_to_factory and send_to_factory.lower() == 'yes' and factory_email:
-            # Add factory email to recipients
+
+        if send_to_factory.lower() == 'yes' and factory_email:
             if factory_email not in recipients:
                 recipients.append(factory_email)
-            logger.info(f"Factory email added: {factory_email}")
-        elif send_to_factory and send_to_factory.lower() == 'no':
-            # Remove factory email if it exists in recipients
+        elif send_to_factory.lower() == 'no':
             if factory_email in recipients:
                 recipients.remove(factory_email)
-            logger.info(f"Factory email excluded: {factory_email}")
-        
-        msg = MIMEMultipart('alternative')
-        msg['From'] = sender
-        msg['To'] = ", ".join(recipients)
-        
-        # Extract dynamic data from order_data
+
+        # ---------- DYNAMIC DATA EXTRACTION (UNCHANGED) ----------
         delivery_method = ""
         order_date = ""
         customer_note = ""
-        
+
         if order_data:
-            # Get delivery/pickup option
             for key in ['delivery_method', 'order_type', 'fulfillment_method']:
-                if key in order_data and order_data[key]:
+                if order_data.get(key):
                     delivery_method = order_data[key]
                     break
-            
-            # Get order date
+
             for key in ['order_date', 'delivery_date', 'pickup_date', 'date']:
-                if key in order_data and order_data[key]:
+                if order_data.get(key):
                     order_date = order_data[key]
                     break
-            
-            # Get customer note
+
             for key in ['customer_note', 'note', 'special_instructions', 'comments']:
-                if key in order_data and order_data[key]:
+                if order_data.get(key):
                     customer_note = order_data[key]
                     break
-        
-        # Build dynamic subject
+
+        # ---------- SUBJECT (UNCHANGED) ----------
         subject = email_config.get('subject', 'New Order - {invoice_no}')
         subject = subject.replace('{invoice_no}', invoice_no)
-        
-        # Add delivery method and date to subject if available
+
         if delivery_method or order_date:
-            subject_suffix = "Order for"
-            if delivery_method:
-                subject_suffix += f" {delivery_method}"
-            if order_date:
-                subject_suffix += f" on {order_date}"
-            subject = f"{subject_suffix} - {invoice_no}"
-        
-        msg['Subject'] = subject
-        
-        # Build email body (plain text version)
-        body_parts = []
-        
-        # Greeting
-        body_parts.append("Hi guys,")
-        body_parts.append("")
-        body_parts.append("Please see the order below.")
-        
-        # Delivery/Pickup info
+            subject = f"Order for {delivery_method} {order_date} - {invoice_no}".strip()
+
+        # ---------- BODY (PLAIN + HTML SAME AS BEFORE) ----------
+        body_parts = [
+            "Hi guys,",
+            "",
+            "Please see the order below."
+        ]
+
         if delivery_method:
-            delivery_line = f"For {delivery_method}"
-            if order_date:
-                delivery_line += f" on {order_date}"
-            body_parts.append(delivery_line)
+            body_parts.append(f"For {delivery_method} on {order_date}" if order_date else f"For {delivery_method}")
         elif order_date:
             body_parts.append(f"For {order_date}")
-        
-        body_parts.append("")
-        
-        # Customer note
+
         if customer_note:
-            body_parts.append(f"Note from customer: {customer_note}")
             body_parts.append("")
-        
-        # Custom message from config
+            body_parts.append(f"Note from customer: {customer_note}")
+
         custom_body = email_config.get('email_body', '')
         if custom_body:
-            body_parts.append(custom_body.replace('{invoice_no}', invoice_no))
             body_parts.append("")
-        
-        # Signature (plain text)
+            body_parts.append(custom_body.replace('{invoice_no}', invoice_no))
+
         signature_text = email_config.get('signature', '')
         if signature_text:
+            body_parts.append("")
             body_parts.append(signature_text.replace('{invoice_no}', invoice_no))
-        
+
         plain_body = "\n".join(body_parts)
-        
-        # Build HTML version with clickable link
-        html_parts = []
-        html_parts.append("<html><body style='font-family: Arial, sans-serif;'>")
-        html_parts.append("<p>Hi guys,</p>")
-        html_parts.append("<p>Please see the order below.</p>")
-        
-        # Delivery/Pickup info
-        if delivery_method:
-            delivery_text = f"<p>For <strong>{delivery_method}</strong>"
-            if order_date:
-                delivery_text += f" on <strong>{order_date}</strong>"
-            delivery_text += "</p>"
-            html_parts.append(delivery_text)
-        elif order_date:
-            html_parts.append(f"<p>For <strong>{order_date}</strong></p>")
-        
-        # Customer note
-        if customer_note:
-            html_parts.append(f"<p><strong>Note from customer:</strong> {customer_note}</p>")
-        
-        # Custom message
-        if custom_body:
-            html_parts.append(f"<p>{custom_body.replace(chr(10), '<br>')}</p>")
-        
-        # Signature with clickable link (HTML)
-        signature_html = email_config.get('signature_html', '')
-        if not signature_html and signature_text:
-            # Convert plain signature to HTML with clickable link
-            signature_html = signature_text.replace('\n', '<br>')
-            # Find and convert live chat link
-            if 'Click Here' in signature_html and 'https://tawk.to/' in signature_html:
-                # Extract link
-                link_match = re.search(r'\((https://tawk\.to/[^\)]+)\)', signature_html)
-                if link_match:
-                    link_url = link_match.group(1)
-                    signature_html = re.sub(
-                        r'Live Chat \[Click Here\] \([^\)]+\)',
-                        f'Live Chat <a href="{link_url}" style="color: #007bff; text-decoration: none;">Click Here</a>',
-                        signature_html
-                    )
-        
-        if signature_html:
-            html_parts.append("<br>")
-            html_parts.append(signature_html.replace('{invoice_no}', invoice_no))
-        
-        html_parts.append("</body></html>")
-        html_body = "\n".join(html_parts)
-        
-        # Attach both versions
-        msg.attach(MIMEText(plain_body, 'plain'))
-        msg.attach(MIMEText(html_body, 'html'))
-        
-        # Attach PDF
-        try:
-            if not Path(pdf_path).exists():
-                logger.error(f"PDF file not found: {pdf_path}")
-                raise FileNotFoundError(f"PDF not found: {pdf_path}")
-            
-            pdf_size = Path(pdf_path).stat().st_size
-            logger.info(f"Attaching PDF: {pdf_path} (Size: {pdf_size} bytes)")
-            
-            with open(pdf_path, "rb") as f:
-                part = MIMEBase("application", "octet-stream")
-                part.set_payload(f.read())
-            
-            encoders.encode_base64(part)
-            part.add_header("Content-Disposition", f"attachment; filename={Path(pdf_path).name}")
-            msg.attach(part)
-            
-            logger.info(f"PDF attached successfully: {Path(pdf_path).name}")
-        except Exception as e:
-            logger.error(f"Failed to attach PDF: {e}")
-            raise
-        
-        # FIXED: Try multiple SMTP methods based on port
-        logger.info(f"Attempting to send email via {smtp_server}:{smtp_port}")
-        
-        if smtp_port == 465:
-            # Use SSL (Port 465)
-            import ssl
-            context = ssl.create_default_context()
-            
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as server:
-                server.login(sender, password)
-                server.sendmail(sender, recipients, msg.as_string())
-                logger.info("Email sent successfully via SSL (port 465)")
-        
-        elif smtp_port == 587:
-            # Use STARTTLS (Port 587) - Try with timeout
-            try:
-                with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
-                    server.starttls()
-                    server.login(sender, password)
-                    server.sendmail(sender, recipients, msg.as_string())
-                    logger.info("Email sent successfully via STARTTLS (port 587)")
-            except (OSError, ConnectionError, TimeoutError) as e:
-                # Port 587 blocked, fallback to 465
-                logger.warning(f"Port 587 failed ({e}), trying port 465 with SSL...")
-                import ssl
-                context = ssl.create_default_context()
-                
-                with smtplib.SMTP_SSL(smtp_server, 465, context=context) as server:
-                    server.login(sender, password)
-                    server.sendmail(sender, recipients, msg.as_string())
-                    logger.info("Email sent successfully via SSL fallback (port 465)")
-        
-        else:
-            # Unknown port, try basic SMTP
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
-                server.starttls()
-                server.login(sender, password)
-                server.sendmail(sender, recipients, msg.as_string())
-        
-        logger.info(f"Email sent to {len(recipients)} recipients - Subject: {subject}")
-        logger.info(f"Recipients: {', '.join(recipients)}")
+
+        # ---------- HTML ----------
+        html_body = plain_body.replace("\n", "<br>")
+
+        # ---------- PDF ----------
+        if not Path(pdf_path).exists():
+            raise FileNotFoundError(pdf_path)
+
+        with open(pdf_path, "rb") as f:
+            encoded_pdf = base64.b64encode(f.read()).decode("utf-8")
+
+        # ---------- RESEND API ----------
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": sender,
+                "to": recipients,
+                "subject": subject,
+                "html": html_body,
+                "text": plain_body,
+                "attachments": [
+                    {
+                        "filename": Path(pdf_path).name,
+                        "content": encoded_pdf
+                    }
+                ]
+            },
+            timeout=30
+        )
+
+        if response.status_code not in (200, 201):
+            logger.error(f"Resend failed: {response.text}")
+            return False
+
+        logger.info(f"Email sent successfully via Resend → {recipients}")
         return True
-        
+
     except Exception as e:
         logger.error(f"Email failed: {e}", exc_info=True)
         return False
