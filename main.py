@@ -13,6 +13,7 @@ from email import encoders
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 import glob
+import base64
 
 # ============= LOGGING SETUP =============
 logging.basicConfig(
