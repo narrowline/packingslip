@@ -27,12 +27,11 @@
     "title": "Wholesale Order",
     "logo_path": "Picture1.png",
     "fonts": {
-      "paths": [
-        ["D:\\packingslip\\DejaVuSans.ttf", "D:\\packingslip\\DejaVuSans-Bold.ttf"],
-        ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf"],
-        ["dejavu-sans\\DejaVuSans.ttf", "dejavu-sans\\DejaVuSans-Bold.ttf"]
-      ]
-    },
+  "paths": [
+    ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf"],
+    ["dejavu-sans/DejaVuSans.ttf", "dejavu-sans/DejaVuSans-Bold.ttf"]
+  ]
+},
     "style": {
       "title_font_size": 16,
       "header_font_size": 11,
