@@ -413,7 +413,7 @@ def extract_form_id(raw_data: Dict) -> Optional[str]:
 # ============================================
 
 
-# ============= EMAIL SERVICE =============
+# ============= EMAIL SERVICE (FIXED FOR RAILWAY) =============
 def send_email_with_pdf(pdf_path: str, config: Dict, invoice_no: str, order_data: Dict = None) -> bool:
     """Send PDF via email with dynamic content - Uses environment variables for credentials"""
     email_config = config['email']
@@ -423,7 +423,7 @@ def send_email_with_pdf(pdf_path: str, config: Dict, invoice_no: str, order_data
         sender = os.getenv('EMAIL_SENDER', email_config.get('sender', ''))
         password = os.getenv('EMAIL_PASSWORD', email_config.get('password', ''))
         smtp_server = os.getenv('SMTP_SERVER', email_config.get('smtp_server', 'smtp.gmail.com'))
-        smtp_port = int(os.getenv('SMTP_PORT', email_config.get('smtp_port', 587)))
+        smtp_port = int(os.getenv('SMTP_PORT', email_config.get('smtp_port', 465)))  # Changed default to 465
         
         if not sender or not password:
             logger.error("Email credentials not found in environment variables or config")
@@ -601,11 +601,44 @@ def send_email_with_pdf(pdf_path: str, config: Dict, invoice_no: str, order_data
             logger.error(f"Failed to attach PDF: {e}")
             raise
         
-        # Send using environment variable credentials
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(sender, password)
-            server.sendmail(sender, recipients, msg.as_string())
+        # FIXED: Try multiple SMTP methods based on port
+        logger.info(f"Attempting to send email via {smtp_server}:{smtp_port}")
+        
+        if smtp_port == 465:
+            # Use SSL (Port 465)
+            import ssl
+            context = ssl.create_default_context()
+            
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as server:
+                server.login(sender, password)
+                server.sendmail(sender, recipients, msg.as_string())
+                logger.info("Email sent successfully via SSL (port 465)")
+        
+        elif smtp_port == 587:
+            # Use STARTTLS (Port 587) - Try with timeout
+            try:
+                with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
+                    server.starttls()
+                    server.login(sender, password)
+                    server.sendmail(sender, recipients, msg.as_string())
+                    logger.info("Email sent successfully via STARTTLS (port 587)")
+            except (OSError, ConnectionError, TimeoutError) as e:
+                # Port 587 blocked, fallback to 465
+                logger.warning(f"Port 587 failed ({e}), trying port 465 with SSL...")
+                import ssl
+                context = ssl.create_default_context()
+                
+                with smtplib.SMTP_SSL(smtp_server, 465, context=context) as server:
+                    server.login(sender, password)
+                    server.sendmail(sender, recipients, msg.as_string())
+                    logger.info("Email sent successfully via SSL fallback (port 465)")
+        
+        else:
+            # Unknown port, try basic SMTP
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as server:
+                server.starttls()
+                server.login(sender, password)
+                server.sendmail(sender, recipients, msg.as_string())
         
         logger.info(f"Email sent to {len(recipients)} recipients - Subject: {subject}")
         logger.info(f"Recipients: {', '.join(recipients)}")
@@ -614,6 +647,7 @@ def send_email_with_pdf(pdf_path: str, config: Dict, invoice_no: str, order_data
     except Exception as e:
         logger.error(f"Email failed: {e}", exc_info=True)
         return False
+# =========================================
 # =========================================
 
 
