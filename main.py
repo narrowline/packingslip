@@ -617,7 +617,7 @@ def send_email_with_pdf(pdf_path: str, config: Dict, invoice_no: str, order_data
 # =========================================
 
 
-# ============= PDF GENERATOR =============
+# ============= PDF GENERATOR (FIXED FONT LOADING) =============
 def create_packing_slip(order_data: Dict, config: Dict) -> str:
     """Generate PDF packing slip in single packing_slips folder"""
     pdf = FPDF('P', 'mm', 'A4')
@@ -626,36 +626,80 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
     pdf_config = config['pdf']
     style = pdf_config['style']
     
-    # Load fonts
+    # FIXED: Dynamic font loading with proper path resolution
     regular_font = bold_font = "Arial"
-    for font_regular, font_bold in pdf_config['fonts']['paths']:
-        if Path(font_regular).exists():
-            try:
-                pdf.add_font('DejaVu', '', font_regular, uni=True)
-                regular_font = "DejaVu"
-                if Path(font_bold).exists():
-                    pdf.add_font('DejaVu', 'B', font_bold, uni=True)
-                    bold_font = "DejaVu"
-                break
-            except:
-                pass
+    base_path = Path(__file__).parent
+    
+    # Try multiple font locations
+    font_search_paths = [
+        # Direct paths from config
+        pdf_config['fonts']['paths'],
+        # Common font locations
+        [
+            [base_path / "DejaVuSans.ttf", base_path / "DejaVuSans-Bold.ttf"],
+            [base_path / "dejavu-sans" / "DejaVuSans.ttf", base_path / "dejavu-sans" / "DejaVuSans-Bold.ttf"],
+            ["fonts/DejaVuSans.ttf", "fonts/DejaVuSans-Bold.ttf"]
+        ]
+    ]
+    
+    # Flatten and try each font pair
+    for font_paths in font_search_paths:
+        if isinstance(font_paths, list):
+            for font_regular, font_bold in font_paths:
+                # Convert to Path objects if strings
+                regular_path = Path(font_regular) if not isinstance(font_regular, Path) else font_regular
+                bold_path = Path(font_bold) if not isinstance(font_bold, Path) else font_bold
+                
+                # Make absolute if relative
+                if not regular_path.is_absolute():
+                    regular_path = base_path / regular_path
+                if not bold_path.is_absolute():
+                    bold_path = base_path / bold_path
+                
+                # Check if fonts exist
+                if regular_path.exists():
+                    try:
+                        pdf.add_font('DejaVu', '', str(regular_path), uni=True)
+                        regular_font = "DejaVu"
+                        logger.info(f"Loaded regular font: {regular_path}")
+                        
+                        if bold_path.exists():
+                            pdf.add_font('DejaVu', 'B', str(bold_path), uni=True)
+                            bold_font = "DejaVu"
+                            logger.info(f"Loaded bold font: {bold_path}")
+                        
+                        break  # Successfully loaded fonts
+                    except Exception as e:
+                        logger.warning(f"Failed to load fonts from {regular_path}: {e}")
+                        continue
+        
+        # If fonts loaded successfully, break outer loop
+        if regular_font == "DejaVu":
+            break
+    
+    # Fallback to Arial if DejaVu not found
+    if regular_font != "DejaVu":
+        logger.warning("DejaVu fonts not found, using Arial fallback")
     
     # Logo
     logo_paths = [
         pdf_config['logo_path'],
-        f"logos/{Path(pdf_config['logo_path']).name}",
-        Path(pdf_config['logo_path']).name
+        base_path / pdf_config['logo_path'],
+        base_path / "logos" / Path(pdf_config['logo_path']).name,
+        base_path / Path(pdf_config['logo_path']).name
     ]
     
     logo_height = 0
     for logo_path in logo_paths:
-        if Path(logo_path).exists():
+        logo_path = Path(logo_path)
+        if logo_path.exists():
             try:
-                pdf.image(logo_path, x=10, y=5, w=190)
+                pdf.image(str(logo_path), x=10, y=5, w=190)
                 logo_height = 40
+                logger.info(f"Logo loaded from: {logo_path}")
                 break
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to load logo from {logo_path}: {e}")
     
     if logo_height > 0:
         pdf.ln(logo_height + 2)
@@ -795,7 +839,7 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
     invoice_no = order_data.get('invoice_no', 'UNKNOWN')
     
     # Single folder path - NO subfolders
-    packing_slips_dir = Path(__file__).parent / 'packing_slips'
+    packing_slips_dir = base_path / 'packing_slips'
     packing_slips_dir.mkdir(parents=True, exist_ok=True)
     
     pdf_file = packing_slips_dir / f"packing_slip_{invoice_no}_{timestamp}.pdf"
@@ -803,6 +847,7 @@ def create_packing_slip(order_data: Dict, config: Dict) -> str:
     
     logger.info(f"PDF created: {pdf_file}")
     return str(pdf_file)
+# =========================================
 # =========================================
 
 
