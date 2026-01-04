@@ -14,6 +14,7 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 import glob
 import base64
+import requests
 
 # ============= LOGGING SETUP =============
 logging.basicConfig(
